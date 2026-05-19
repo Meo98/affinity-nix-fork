@@ -26,6 +26,15 @@ let
     hash = "sha256-/W5gmh+RrvCytjIL0CkqOepygrz2wHn2pJf0VAGj1Hs=";
   };
 
+  # DXVK: D3D9/10/11 -> Vulkan translator. Needed on iGPUs (Intel Iris Xe) where
+  # Wine's stock d3d11 fails to create a hardware device and Affinity falls back
+  # to WARP (Software-Renderer), which in turn isn't implemented in Wine -> reine
+  # GDI-Software-Rendering -> CPU am Anschlag. DXVK lets Affinity render via Vulkan.
+  dxvk = fetchzip {
+    url = "https://github.com/doitsujin/dxvk/releases/download/v2.4.1/dxvk-2.4.1.tar.gz";
+    hash = "sha256-SD9ObbkwCdrlQN9WrH5iUXWhtlbuwVGgVBo6ZNVKsmA=";
+  };
+
   inherit (wine-packages) wine wineserver;
 in
 runCommand "base-prefix-4" { } ''
@@ -38,6 +47,12 @@ runCommand "base-prefix-4" { } ''
 
   cp ${vkd3d}/x64/d3d12.dll "$WINEPREFIX/drive_c/windows/system32"
   cp ${vkd3d}/x64/d3d12core.dll "$WINEPREFIX/drive_c/windows/system32"
+
+  # DXVK: D3D11 + D3D10core + DXGI -> Vulkan. The DXGI from DXVK supersedes Wine's
+  # AND is compatible with vkd3d-proton (Proton uses this exact combo).
+  cp ${dxvk}/x64/d3d11.dll "$WINEPREFIX/drive_c/windows/system32"
+  cp ${dxvk}/x64/d3d10core.dll "$WINEPREFIX/drive_c/windows/system32"
+  cp ${dxvk}/x64/dxgi.dll "$WINEPREFIX/drive_c/windows/system32"
 
   ${lib.getExe wine} regedit /S "${registry-patches.one-vkd3d}"
 
