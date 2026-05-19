@@ -1,0 +1,56 @@
+Subject: [PATCH] d2d1: cap d2d_geometry_intersect_bezier_bezier recursion depth
+
+Wine's bezier intersection algorithm recurses 4-way until the parameter
+range falls below 1e-3, but for nearly-collinear bezier curves the
+bounding box overlap stays true and float precision prevents convergence,
+producing effectively infinite recursion and an Affinity hang when
+double-clicking SVG-imported vector groups.
+
+Rename the recursive function to *_inner and add a small wrapper with the
+original name that maintains a thread-local depth counter. Recursive
+calls inside *_inner reference the original name and now route through
+the wrapper, so each recursion level increments the counter; once the
+counter hits the cap the wrapper returns success without recursing
+further. Non-pathological inputs hit the existing 1e-3 termination
+first and are unaffected.
+
+--- a/src/geometry.c	2026-05-18 09:11:52.038214233 +0200
++++ b/src/geometry.c	2026-05-18 09:19:04.904616672 +0200
+@@ -2336,6 +2336,11 @@
+ static BOOL d2d_geometry_intersect_bezier_bezier(struct d2d_geometry *geometry,
+         struct d2d_geometry_intersections *intersections,
+         const struct d2d_segment_idx *idx_p, float start_p, float end_p,
++        const struct d2d_segment_idx *idx_q, float start_q, float end_q);
++
++static BOOL d2d_geometry_intersect_bezier_bezier_inner(struct d2d_geometry *geometry,
++        struct d2d_geometry_intersections *intersections,
++        const struct d2d_segment_idx *idx_p, float start_p, float end_p,
+         const struct d2d_segment_idx *idx_q, float start_q, float end_q)
+ {
+     const D2D1_POINT_2F *p[3], *q[3];
+@@ -2394,6 +2399,25 @@
+     return TRUE;
+ }
+ 
++/* Recursion-depth-guarded wrapper. Recursive calls inside *_inner reference
++ * this function by name, so each level passes through the counter. */
++static BOOL d2d_geometry_intersect_bezier_bezier(struct d2d_geometry *geometry,
++        struct d2d_geometry_intersections *intersections,
++        const struct d2d_segment_idx *idx_p, float start_p, float end_p,
++        const struct d2d_segment_idx *idx_q, float start_q, float end_q)
++{
++    static __thread int depth = 0;
++    BOOL ret;
++
++    if (depth >= 32)
++        return TRUE;
++    ++depth;
++    ret = d2d_geometry_intersect_bezier_bezier_inner(geometry, intersections,
++            idx_p, start_p, end_p, idx_q, start_q, end_q);
++    --depth;
++    return ret;
++}
++
+ static BOOL d2d_geometry_apply_intersections(struct d2d_geometry *geometry,
+         struct d2d_geometry_intersections *intersections)
+ {

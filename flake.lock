@@ -271,6 +271,23 @@
         "type": "github"
       }
     },
+    "plugin-loader-v030-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1775508798,
+        "narHash": "sha256-cD2G3M83wCEXVMMl9YoHMLxPIvbXeESgQTkXiM+lzns=",
+        "owner": "noahc3",
+        "repo": "AffinityPluginLoader",
+        "rev": "bd93bbf9f84735d8ba6538596620bbe8d8b90efd",
+        "type": "github"
+      },
+      "original": {
+        "owner": "noahc3",
+        "ref": "v0.3.0",
+        "repo": "AffinityPluginLoader",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "corefonts": "corefonts",
@@ -284,6 +301,7 @@
         "nixpkgs-wine": "nixpkgs-wine",
         "on-linux": "on-linux",
         "plugin-loader-src": "plugin-loader-src",
+        "plugin-loader-v030-src": "plugin-loader-v030-src",
         "treefmt-nix": "treefmt-nix"
       }
     },

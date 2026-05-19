@@ -15,6 +15,7 @@ let
 
   apl-combined = callPackage ../apl/apl-combined.nix {
     src = inputs.plugin-loader-src;
+    v030-src = inputs.plugin-loader-v030-src;
   };
 
   prefixBase = callPackage ../prefixWithAffinity.nix {

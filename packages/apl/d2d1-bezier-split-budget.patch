@@ -1,0 +1,51 @@
+Subject: [PATCH] d2d1: cap split count in d2d_geometry_resolve_beziers
+
+d2d_geometry_resolve_beziers runs an outer overlap-then-split loop:
+
+    while (d2d_geometry_check_bezier_overlap(p, q))
+        d2d_geometry_split_bezier(p or q)
+
+For pathological geometries (overlapping/collinear beziers in SVG
+imports), the overlap check stays true after each split because float
+precision prevents the control-triangle area from shrinking enough.
+The loop never terminates and Affinity hangs on double-click of
+imported vector groups.
+
+Wrap d2d_geometry_split_bezier with a thread-local counter (max 512
+splits per resolve). Once the budget is exhausted split_bezier returns
+FALSE which the caller already handles by aborting the resolve. The
+counter is reset at the entry of d2d_geometry_resolve_beziers.
+
+Mirrors the WineFix BezierSplitBudgetPatch (NativeHook on Wine 9.13
+d2d1.dll), but applied at source level so it works on the Wine 10.18
+standalone build shipped with affinity-nix.
+
+--- a/src/geometry.c	2026-05-18 10:43:49.692616710 +0200
++++ b/src/geometry.c	2026-05-18 10:44:31.063379277 +0200
+@@ -3336,8 +3336,17 @@
+             &figure->bezier_controls[idx->control_idx], &figure->vertices[next]);
+ }
+ 
++/* Thread-local cap to prevent unbounded splitting in d2d_geometry_resolve_beziers
++ * when pathological geometries (overlapping/collinear beziers) make
++ * d2d_geometry_check_bezier_overlap loop forever. Reset at the start of
++ * d2d_geometry_resolve_beziers. */
++static __thread int d2d_split_budget = 0;
++
+ static BOOL d2d_geometry_split_bezier(struct d2d_geometry *geometry, const struct d2d_segment_idx *idx)
+ {
++    if (++d2d_split_budget > 512)
++        return FALSE;
++
+     const D2D1_POINT_2F *p[3];
+     struct d2d_figure *figure;
+     D2D1_POINT_2F q[3];
+@@ -3371,6 +3380,8 @@
+     struct d2d_figure *figure;
+     size_t bezier_idx, i;
+ 
++    d2d_split_budget = 0;
++
+     if (!d2d_geometry_get_first_bezier_segment_idx(geometry, &idx_p))
+         return S_OK;
+ 

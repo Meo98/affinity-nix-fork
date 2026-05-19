@@ -1,9 +1,32 @@
-{ stdenv, ... }:
-# dev branch removed WineFix/lib/d2d1 — D2D1 fixes are now pure .NET
-# (WidenStubPatch + BezierSplitBudgetPatch + BezierSplitGuardPatch via NativeHook)
+{
+  stdenv,
+  version,
+  wine64,
+  src,
+  ...
+}:
+let
+  TARGET = "x86_64-unix";
+in
 stdenv.mkDerivation {
+  src = "${src}/WineFix/lib/d2d1";
   pname = "d2d1";
-  version = "unstable";
-  dontUnpack = true;
-  installPhase = "mkdir -p $out";
+  inherit version TARGET;
+
+  nativeBuildInputs = [ wine64 ];
+
+  patches = [
+    ./d2d1-bezier-recursion-guard.patch
+    ./d2d1-bezier-split-budget.patch
+  ];
+
+  env.NIX_CFLAGS_COMPILE = toString [
+    "-Wno-error=incompatible-pointer-types"
+    "-Wno-error=discarded-qualifiers"
+  ];
+
+  installPhase = ''
+    mkdir -p $out/lib/AffinityPluginLoader
+    cp build/${TARGET}/d2d1.dll.so $out/lib/AffinityPluginLoader/d2d1.dll
+  '';
 }

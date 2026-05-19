@@ -16,6 +16,15 @@
       flake = false;
     };
 
+    # v0.3.0 contained WineFix/lib/d2d1 (Wine 10.18 d2d1 standalone build), which the
+    # dev branch removed in favor of pure-.NET COM vtable patches. We still need the
+    # native d2d1 build to avoid a serif.interop.persona delay-load failure on the
+    # Wine 9.13 stock d2d1, so we pull just that subtree from v0.3.0.
+    plugin-loader-v030-src = {
+      url = "github:noahc3/AffinityPluginLoader/v0.3.0";
+      flake = false;
+    };
+
     flake-parts.url = "github:hercules-ci/flake-parts";
     treefmt-nix.url = "github:numtide/treefmt-nix";
     git-hooks.url = "github:cachix/git-hooks.nix";
