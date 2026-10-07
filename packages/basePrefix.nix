@@ -32,14 +32,22 @@ let
     {
       name = "vcrun2022/vc_redist.x64.exe";
       path = fetchurl {
-        url = "https://web.archive.org/web/20260405052133/https://aka.ms/vs/17/release/vc_redist.x64.exe";
+        # Live URL first; the archive.org snapshot intermittently returns HTTP 500.
+        # Both serve the identical file (verified 2026-10-07, same hash).
+        urls = [
+          "https://aka.ms/vs/17/release/vc_redist.x64.exe"
+          "https://web.archive.org/web/20260405052133/https://aka.ms/vs/17/release/vc_redist.x64.exe"
+        ];
         hash = "sha256-zA/w6x3D9RiK5jAPrvMr9b7rpL3W6ORFqRhAcglrcTs=";
       };
     }
     {
       name = "vcrun2022/vc_redist.x86.exe";
       path = fetchurl {
-        url = "https://web.archive.org/web/20260330091736/https://aka.ms/vs/17/release/vc_redist.x86.exe";
+        urls = [
+          "https://aka.ms/vs/17/release/vc_redist.x86.exe"
+          "https://web.archive.org/web/20260330091736/https://aka.ms/vs/17/release/vc_redist.x86.exe"
+        ];
         hash = "sha256-DAnyYRZgRBCEzg30JcUcEeFH5kR5Y8NpD5fgslxV7WQ=";
       };
     }
