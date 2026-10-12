@@ -1,8 +1,11 @@
 {
   callPackage,
   symlinkJoin,
+  stdenv,
+  inputs,
   src,
   v030-src,
+  wine-packages,
   ...
 }:
 let
@@ -21,9 +24,17 @@ let
   # serif.interop.persona at startup, while preventing the infinite
   # recursion hang that the dev-branch C# patches would normally guard
   # against (but can't, because their byte patterns target Wine 9.13).
-  d2d1 = callPackage ./d2d1.nix {
+  # WICHTIG: d2d1 ist ein ELF-"so-builtin", das Wine per dlopen in den
+  # eigenen Prozess laedt. Es muss deshalb gegen DIESELBE glibc gebaut sein wie
+  # das Laufzeit-Wine (nixpkgs-wine, glibc 2.40) und mit dessen winegcc.
+  # Mit dem normalen stdenv (nixpkgs des Konsumenten, glibc >= 2.43) schlug
+  # dlopen mit "version GLIBC_2.43 not found" fehl -> Wine meldet c000012f ->
+  # Serif.WinRT.dll kann d2d1 nicht delay-loaden -> Startcrash 0xC06D007E.
+  pkgsWine = inputs.nixpkgs-wine.legacyPackages.${stdenv.hostPlatform.system};
+  d2d1 = pkgsWine.callPackage ./d2d1.nix {
     inherit version;
     src = v030-src;
+    wine64 = wine-packages.wineUnwrapped;
   };
 in
 symlinkJoin {
